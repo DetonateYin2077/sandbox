@@ -10,3 +10,5 @@ export { default as signAndSendTransaction } from './signAndSendTransaction';
 export { default as signAndSendTransactionV0WithLookupTable } from './signAndSendTransactionV0WithLookupTable';
 export { default as signMessage } from './signMessage';
 export { default as signTransaction } from './signTransaction';
+export { default as signTransactionLegacy } from './signTransactionLegacy';
+

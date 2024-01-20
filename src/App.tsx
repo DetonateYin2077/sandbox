@@ -5,7 +5,8 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import styled from 'styled-components';
-import { Connection, PublicKey } from '@solana/web3.js';
+import { Connection, PublicKey, Transaction, VersionedTransaction } from '@solana/web3.js';
+import bs58 from 'bs58';
 
 import {
   createAddressLookupTable,
@@ -19,6 +20,7 @@ import {
   signAndSendTransactionV0WithLookupTable,
   signMessage,
   signTransaction,
+  signTransactionLegacy
 } from './utils';
 
 import { TLog } from './types';
@@ -43,7 +45,7 @@ const StyledApp = styled.div`
 // =============================================================================
 
 // NB: This URL will only work for Phantom sandbox apps! Please do not use this for your project.
-const NETWORK = 'https://phantom-phantom-f0ad.mainnet.rpcpool.com/';
+const NETWORK = 'https://api.devnet.solana.com/';
 const provider = getProvider();
 const connection = new Connection(NETWORK);
 const message = 'To avoid digital dognappers, sign below to authenticate with CryptoCorgis.';
@@ -290,6 +292,68 @@ const useProps = (): Props => {
     }
   }, [createLog]);
 
+
+  /** handleSignTransactionV0 */
+  const handleSignTransactionV0 = useCallback(async () => {
+    if (!provider) return;
+
+    try {
+      const transactionV0 = await createTransferTransactionV0(provider.publicKey, connection);
+      createLog({
+        status: 'info',
+        method: 'signTransaction',
+        message: `Requesting signature for: ${JSON.stringify(transactionV0)}`,
+      });
+      const signedTransaction = await signTransaction(provider, transactionV0);
+      createLog({
+        status: 'success',
+        method: 'signTransaction',
+        message: `Transaction signed: ${JSON.stringify(signedTransaction)}`,
+      });
+    } catch (error) {
+      createLog({
+        status: 'error',
+        method: 'signTransaction',
+        message: error.message,
+      });
+    }
+  }, [createLog]);
+
+/** handleSignLegacyTransaction */
+const handleSignLegacyTransaction = useCallback(async () => {
+  if (!provider) return;
+
+  try {
+    const transaction = await createTransferTransaction(provider.publicKey, connection);
+    const signedTransaction = await signTransactionLegacy(provider, transaction);
+    createLog({
+      status: 'success',
+      method: 'signTransaction',
+      message: `Transaction signed: ${JSON.stringify(signedTransaction)}`,
+    });
+    // const signedTransaction = Transaction.from(signedTransactionBuffer as Uint8Array)
+
+    const isVerifyed = (signedTransaction as Transaction).verifySignatures()
+    // type signatureArray = Uint8Array | number[]
+    const rowSignature = signedTransaction.signatures
+    // const signature = bs58.encode(rowSignature);
+      
+      if (!rowSignature) throw new Error('Transaction not signed!');
+      if (!isVerifyed) throw new Error(`Transaction signature invalid! ${rowSignature}`);
+      createLog({
+        status: 'success',
+        method: 'signTransaction',
+        message: `Transaction signature valid! ${JSON.stringify(rowSignature)}`,
+      });
+  } catch (error) {
+    createLog({
+      status: 'error',
+      method: 'signTransaction',
+      message: error.message,
+    });
+  }
+}, [createLog]);
+
   /** SignAllTransactions */
   const handleSignAllTransactions = useCallback(async () => {
     if (!provider) return;
@@ -297,7 +361,7 @@ const useProps = (): Props => {
     try {
       const transactions = [
         await createTransferTransaction(provider.publicKey, connection),
-        await createTransferTransaction(provider.publicKey, connection),
+        await createTransferTransactionV0(provider.publicKey, connection),
       ];
       createLog({
         status: 'info',
@@ -372,30 +436,42 @@ const useProps = (): Props => {
 
   const connectedMethods = useMemo(() => {
     return [
+      // {
+      //   name: 'Sign and Send Transaction (Legacy)',
+      //   onClick: handleSignAndSendTransaction,
+      // },
+      // {
+      //   name: 'Sign and Send Transaction (v0)',
+      //   onClick: handleSignAndSendTransactionV0,
+      // },
+      // {
+      //   name: 'Sign and Send Transaction (v0 + Lookup table)',
+      //   onClick: handleSignAndSendTransactionV0WithLookupTable,
+      // },
+      // {
+      //   name: 'Sign Transaction',
+      //   onClick: handleSignTransaction,
+      // },
       {
-        name: 'Sign and Send Transaction (Legacy)',
-        onClick: handleSignAndSendTransaction,
+        name: 'Sign Transaction (v0)',
+        onClick: handleSignTransactionV0,
       },
       {
-        name: 'Sign and Send Transaction (v0)',
-        onClick: handleSignAndSendTransactionV0,
+        name: 'Sign Transaction (legacy)',
+        onClick: handleSignLegacyTransaction,
       },
+      // {
+      //   name: 'Sign Transaction',
+      //   onClick: handleSignTransaction,
+      // },
       {
-        name: 'Sign and Send Transaction (v0 + Lookup table)',
-        onClick: handleSignAndSendTransactionV0WithLookupTable,
-      },
-      {
-        name: 'Sign Transaction',
-        onClick: handleSignTransaction,
-      },
-      {
-        name: 'Sign All Transactions',
+        name: 'Sign All Transactions (1 v0 + 1 legacy)',
         onClick: handleSignAllTransactions,
       },
-      {
-        name: 'Sign Message',
-        onClick: handleSignMessage,
-      },
+      // {
+      //   name: 'Sign Message',
+      //   onClick: handleSignMessage,
+      // },
       {
         name: 'Disconnect',
         onClick: handleDisconnect,
@@ -406,6 +482,8 @@ const useProps = (): Props => {
     handleSignAndSendTransactionV0,
     handleSignAndSendTransactionV0WithLookupTable,
     handleSignTransaction,
+    handleSignTransactionV0,
+    handleSignLegacyTransaction,
     handleSignAllTransactions,
     handleSignMessage,
     handleDisconnect,

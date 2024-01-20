@@ -468,10 +468,10 @@ const handleSignLegacyTransaction = useCallback(async () => {
         name: 'Sign All Transactions (1 v0 + 1 legacy)',
         onClick: handleSignAllTransactions,
       },
-      // {
-      //   name: 'Sign Message',
-      //   onClick: handleSignMessage,
-      // },
+      {
+        name: 'Sign Message',
+        onClick: handleSignMessage,
+      },
       {
         name: 'Disconnect',
         onClick: handleDisconnect,

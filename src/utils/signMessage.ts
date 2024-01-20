@@ -10,7 +10,8 @@ const signMessage = async (provider: PhantomProvider, message: string): Promise<
   try {
     const encodedMessage = new TextEncoder().encode(message);
     const signedMessage = await provider.signMessage(encodedMessage);
-    return signedMessage;
+    const signature = signedMessage?.signature
+    return signature;
   } catch (error) {
     console.warn(error);
     throw new Error(error.message);
